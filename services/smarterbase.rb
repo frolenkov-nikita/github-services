@@ -3,7 +3,7 @@ class Service::Smarterbase < Service
   string   :subdomain, :username
   password :password
   white_list :subdomain, :username
-
+ 
   def invalid_request?
     data['username'].to_s.empty? or
         data['password'].to_s.empty? or
@@ -12,9 +12,9 @@ class Service::Smarterbase < Service
 
   def service_url(subdomain)
     if subdomain =~ /\./
-      url = "https://#{subdomain}/"
+      url = "http://#{subdomain}/external/github"
     else
-      url = "https://#{subdomain}.smarterbase.com/"
+      url = "http://#{subdomain}.smarterbase.com/external/github"
     end
 
     begin
@@ -28,15 +28,16 @@ class Service::Smarterbase < Service
 
   def receive_event
     raise_config_error "Bad configuration" if invalid_request?
-
+    puts event.to_s
     http.headers['X-GitHub-Event'] = event.to_s
 
     url = service_url(data['subdomain'])
     res = http_post(url, { :payload => payload,
-                           :username => username,
-                           :password => password }.to_json)
-
-    if res.status != 201
+                           :subdomain => data['subdomain'],
+                           :username => data['username'],
+                           :password => data['password'] }.to_json)
+    
+    unless res.status.to_s[/2\d+/]
       raise_config_error("Unexpected response code:#{res.status}")
     end
   end
